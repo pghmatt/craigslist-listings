@@ -1,11 +1,17 @@
 var cheerio = require('cheerio');
 var request = require('request');
-var clLogin = require('./craigslist.login.json');
+var clLogin = require('./craigslist.login.js');
 
 var email = clLogin.email;
 var password = clLogin.password;
 
 var cookieJar = request.jar(); // enable cookies
+request.defaults({
+	headers: {
+		// spoof the user agent
+		'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1664.3 Safari/537.36'
+	}
+});
 
 function createFormObject($, formDom) {
 	var formObject = {};
@@ -20,7 +26,7 @@ function createFormObject($, formDom) {
 	return formObject;
 }
 
-exports.renewListings = function(isRetry) {
+exports.renewListings = function(callback, isRetry) {
 	request(
 		{
 			method: "GET",
@@ -31,20 +37,25 @@ exports.renewListings = function(isRetry) {
 			if (err) return next(err);
 			var $ = cheerio.load(body);
 
+			console.log('Cookie jar:', cookieJar);
+
 			var loginForm = $("form[name='login']");
 
-			var notLoggedIn = $("body.login");
+			var notLoggedIn = !!($("body.login").length);
 			console.log("- Not logged in?", !!notLoggedIn);
+
+			console.log("- Account page?", !!($("body.account").length));
 
 			if (notLoggedIn) {
 				if (isRetry) {
-					return false;
+					console.log(body);
+					return callback(false);
 				}
 
 				var form = loginForm.first();
 
-				var emailField = form.find("input[name='inputEmailHandle']");
-				var passwordField = form.find("input[name='inputPassword']");
+				var emailField = form.find("input[name='inputEmailHandle']").first();
+				var passwordField = form.find("input[name='inputPassword']").first();
 
 				emailField.val(email);
 				passwordField.val(password);
@@ -55,13 +66,13 @@ exports.renewListings = function(isRetry) {
 				request.post(form.attr("action"), { form: formObject, followAllRedirects: true },
 					function(err, response, body) {
 						if(response.statusCode >= 200 && response.statusCode < 300){
-							console.log('- Successfully logged in');
+							console.log('- Successfully logged in ('+response.statusCode+'). Cookie jar:', cookieJar);
 
-							exports.renewListings(true); // request the page again now that we are logged in
+							exports.renewListings(function(){}, true); // request the page again now that we are logged in
 						} else {
 							console.log('- Error submitting login form: '+ response.statusCode);
 							console.log(body);
-							return false;
+							return callback(false);
 						}
 					}
 				);
@@ -69,12 +80,12 @@ exports.renewListings = function(isRetry) {
 				var postingsTable = $("table[summary='postings']");
 				var activeListings = postingsTable.children().first().children()
 										.filter(function(index) {
-											return !!($(this).find("td[class='status']:contains('Active')").first());
+											return !!($(this).find("td[class='status']:contains('Active')")[0]);
 										});
 				activeListings.each(function() {
-					var listingName = $(this).find("td[class='title']").first().children().first().text();
-					var renewForm = $(this).find("td[class='buttons']").first().find("form[method='POST']:contains('renew')").first();
-					if (renewForm) {
+					var listingName = $(this).find("td[class='title']:first").children().first().text();
+					var renewForm = $(this).find("td[class='buttons']:first").find("form[method='POST']:contains('renew')").first();
+					if (renewForm.length) {
 						var formObject = createFormObject($, renewForm);
 						console.log("- Submitting renewal form with object:", formObject);
 						/*
@@ -85,10 +96,11 @@ exports.renewListings = function(isRetry) {
 									console.log();
 									console.log('Successfully renewed listing '+ listingName);
 									console.log();
+									// if last one return callback(true); // TODO use async lib here
 								} else {
 									console.log('- Error submitting renewal form: '+ response.statusCode);
 									console.log(body);
-									return false;
+									return callback(false);
 								}
 							}
 						);
@@ -102,6 +114,4 @@ exports.renewListings = function(isRetry) {
 			}
 		}
 	);
-
-	return true;
 };

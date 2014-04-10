@@ -1,5 +1,5 @@
 var craigslist = require("./craigslist");
 
-var success = craigslist.renewListings();
-
-console.log("\n\nDone. Success = " + success);
+craigslist.renewListings(function(didSucceed) {
+	console.log("Done. Success =", didSucceed);
+});
