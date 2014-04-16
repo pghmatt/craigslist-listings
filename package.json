@@ -22,9 +22,6 @@
 		"node >= 0.8.0"
 	],
 	"main": "index.js",
-	"scripts": {
-		"start": "node app.js"
-	},
 	"dependencies": {
 		"cheerio": "0.15.x",
 		"request": "2.34.x",
