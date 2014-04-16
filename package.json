@@ -1,15 +1,35 @@
 {
-  "name": "craigslist-renew",
-  "version": "0.0.0",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/idolize/craigslist-autorenew.git"
-  },
-  "scripts": {
-    "start": "node app.js"
-  },
-  "dependencies": {
-    "cheerio": "0.15.x",
-    "request": "2.34.x"
-  }
+	"name": "craigslist-listings",
+	"description": "Manage your account and listings on Craigslist.",
+	"tags": [
+		"craigslist",
+		"listing",
+		"renew",
+		"delete",
+		"account"
+	],
+	"version": "0.1.0",
+	"author": "David Idol <david.idol@gmail.com>",
+	"repository": {
+		"type": "git",
+		"url": "http://github.com/idolize/craigslist-listings.git"
+	},
+	"bugs": {
+		"url": "http://github.com/idolize/craigslist-listings/issues"
+	},
+	"license": "MIT",
+	"engines": [
+		"node >= 0.8.0"
+	],
+	"main": "index.js",
+	"scripts": {
+		"start": "node app.js"
+	},
+	"dependencies": {
+		"cheerio": "0.15.x",
+		"request": "2.34.x",
+		"winston": "0.7.x",
+		"async": "0.7.x",
+		"xtend": "*"
+	}
 }
