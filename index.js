@@ -107,7 +107,6 @@ function loginFromPage($, email, password, callback) {
  * @param  {Function} afterLoggedInAction Function to call when logged in (calls the doneCallback). Args are required to be ($, options, doneCallback).
  */
 function accountsPageAction(options, doneCallback, afterLoggedInAction) {
-	logger.info("options:", options);
 	request(
 		{
 			method: "GET",
@@ -131,9 +130,16 @@ function accountsPageAction(options, doneCallback, afterLoggedInAction) {
 					return accountsPageAction(options, doneCallback, afterLoggedInAction);
 				});
 			} else {
-				async.nextTick(function() {
-					return afterLoggedInAction($, options, doneCallback);
-				});
+				if (isLoggedIn($)) {
+					async.nextTick(function() {
+						return afterLoggedInAction($, options, doneCallback);
+					});
+				} else {
+					var errorMsg = "Trying to perform an action that requires login while not logged in.\n" + 
+						"Either call .login() first, or set options.autoLogin to true.";
+					logger.error(errorMsg);
+					return doneCallback(new Error(errorMsg));
+				}
 			}
 		}
 	);
@@ -201,6 +207,11 @@ exports.renewListings = function(options, callback) {
 		});
 
 		logger.info("Active listings:", activeListings.length);
+
+		if (!activeListings.length) {
+			logger.info("No active listings to renew");
+			return callback(null, []);
+		}
 
 		var numDone = 0;
 		var renewed = [];
